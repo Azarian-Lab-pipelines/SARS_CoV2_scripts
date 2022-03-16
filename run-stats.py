@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Import modules
 import numpy as np
@@ -9,6 +9,8 @@ import os
 import re
 
 import pysam
+import PIL
+import sys
 
 # Ignore warning
 import warnings
@@ -17,29 +19,30 @@ warnings.filterwarnings("ignore")
 #################### Set up parser ####################
 import argparse as ap
 parser = ap.ArgumentParser()
-parser.add_argument("-d", "--directory", dest="d",
+parser.add_argument("-d", "--directory", dest="d", required=True,
         help="Specify directory containing the sorted BAM files")
+parser.add_argument("-s", "--consensus-seqs", dest="consensus_dir", required=True,
+        help="Specify the directory containing the consensus sequences")
 parser.add_argument("--pattern", dest="pattern", default="sample[0-9]*.sorted.bam$",
         help="Specify the naming pattern of the sorted BAM files (default: 'sample[0-9]*.sorted.bam$')")
 parser.add_argument("-n", "--name", dest="name", default="",
         help="Specify the name of the run")
-parser.add_argument("-b", "--bed", dest="bed",
+parser.add_argument("-b", "--bed", dest="bed", required=True,
         help="Specify a BED file for the primers used")
 parser.add_argument("--msa", dest="msa_file",
         help="Specify the file containing the MSA")
 
 args = parser.parse_args()
 
-if not args.d:
-    parser.error("Please indicate a directory using the '-d' option. See --help for options.")
-if not args.bed:
-    parser.error("Please indicate a BED file using the '-b' option. See --help for options.")
 
 #################### Find the files ####################
 pattern = args.pattern.replace("*", "+").replace("$", "\Z")
 
 if args.d[-1] != "/":
-    args.d = args.d + "/"
+    args.d += "/"
+
+if args.consensus_dir[-1] != "/":
+    args.d += "/"
 
 files = [args.d + f for f in os.listdir(args.d) if re.match(pattern, f)]
 
@@ -56,7 +59,10 @@ for color, f in zip(sns.color_palette("husl", len(files)), files):
                                in pysam.depth("-a", f).strip().split("\n")]
 
     # Calculate the PCT ID for each read
-    #pysam.index(f)
+    """
+<!> Maybe put a piece in here to check if there is a bam index file; if not run run `pysam.index(f)`
+    """
+    #pysam.index(f) # not needed since we already have BAM index files from the pipeline
     plt.style.use("bmh")
     sam = pysam.AlignmentFile(f, "rb")
     pct_ids = [round((read.query_alignment_length/read.query_length)*100,2) \
@@ -64,10 +70,10 @@ for color, f in zip(sns.color_palette("husl", len(files)), files):
 
     sns.kdeplot(pct_ids, color=color, 
                 label=f.split("/")[-1].split(".")[0], 
-               alpha=0.7) 
+               alpha=0.7)
     
 #################### Create images ####################
-print(f"Generating images...")
+print("Calculating %ID of query to reference ...", end=" ")
 
 plt.title("Distribution of percents of query mapped to reference\n")
 plt.xlabel("\nPercent of query mapped to reference")
@@ -78,9 +84,11 @@ plt.legend(bbox_to_anchor=(1.1,1, 0.2, 0),
 
 plt.savefig(f"{args.name}-read-pctid.png", dpi=200,
            bbox_inches="tight")
-print("PCT ID plot done")
+print("PCT ID plot done!")
 
 #################### Plot the coverage by position first ####################
+print("Calculating coverage by genome position ...", end=" ")
+
 plt.style.use("bmh")
 plt.figure(figsize=(15,12))
 
@@ -97,7 +105,7 @@ plt.xlabel("\nPosition")
 
 plt.savefig(f"{args.name}-position-coverage.png", dpi=200,
            bbox_inches="tight")
-print("Positonal coverage plot done")
+print("Positonal coverage plot done!")
 
 # Pull in the bed file
 bed = pd.read_csv(args.bed, sep="\t",
@@ -106,6 +114,7 @@ bed = pd.read_csv(args.bed, sep="\t",
                        "Pool", "Strand"])
 
 # Sort by the amplicon number
+print("Calculating coverage by amplcon position ...", end=" ")
 bed["Amplicon"] = bed.Name.apply(lambda x:int(x.split("_")[1]))
 bed.sort_values(by="Amplicon", inplace=True)
 
@@ -161,7 +170,6 @@ plt.yticks(size=8)
 plt.savefig(f"{args.name}-amplicon-coverage-bar.png", dpi=200,
            bbox_inches="tight")
 
-
 #################### Plot the average coverage for the amplicons for each sample as a line ####################
 plt.style.use("bmh")
 plt.figure(figsize=(15,12))
@@ -187,18 +195,28 @@ plt.yticks(size=8)
 plt.savefig(f"{args.name}-amplicon-coverage.png", dpi=200,
            bbox_inches="tight")
 
+print("Amplicon coverage plots done!")
 
 #################### Plot the median coverage per sample ####################
+# Simplify this image
+    # Remove the values and names unless they are below a certain threshold
+print("Calculating median coverage per sample ...", end=" ")
+
 med_covs = df.median().sort_values()
 plt.figure(figsize=(15,12))
 plt.style.use("bmh")
 
 sns.barplot(x=med_covs.index, y=med_covs.values, palette="husl",
-           edgecolor='k', linewidth=1, alpha=0.7)
+           edgecolor='k', linewidth=1, alpha=0.8)
 ymin,ymax = plt.ylim()
 x=0
 for s,m in dict(med_covs).items():
-    if m > ymax/10:
+    if m < 100 and len(files) > 20:
+        plt.text(x=x, y=ymax/40, s=f"{m}", ha='center',
+                bbox=dict(facecolor="white", boxstyle='round,pad=0.5'), 
+                fontsize=8)
+
+    elif m > ymax/10:
         plt.text(x=x, y=m*0.9, s=m, ha='center',
                 bbox=dict(facecolor="white", boxstyle='round,pad=0.5'),
                 fontsize=8)
@@ -211,11 +229,16 @@ for s,m in dict(med_covs).items():
 plt.title("Median coverage per sample\n")
 plt.ylabel("Median coverage\n")
 
+# Only place the sample names on the plot if the media coverage is < 100 if there are too many samples
+if len(files) > 20:
+    xticks = plt.gca().xaxis.get_major_ticks()
+    [xticks[n].label1.set_visible(False) for n,v in enumerate(dict(med_covs).items()) \
+            if v[1] > 100]
 plt.xticks(rotation=45, ha="right")
 
 plt.savefig(f"{args.name}-median-coverage.png", dpi=200,
            bbox_inches="tight")
-print("Median coverage plot done!\n")
+print("Median coverage plot done!")
 
 
 #################### Pull the percent of N's in the consensus sequences ####################
@@ -244,8 +267,9 @@ def FindSeqs(f, correct=False):
     
     return seqs
 
+print("Calculating N-content within consensus sequences ...", end=" ")
 cons_patt = "sample[0-9]+.consensus.fasta\Z"
-consensus_files = [f for files in os.listdir("./") if re.match(cons_patt, f)]
+consensus_files = [args.consensus_dir + f for f in os.listdir(args.consensus_dir) if re.match(cons_patt, f)]
 
 if args.msa_file:
     # Visualize the consensus sequences
@@ -264,7 +288,7 @@ if args.msa_file:
         gpos = np.asarray([pos for pos,nuc in enumerate(seq) if nuc == "-"])
         tpos = np.asarray([n for n in range(0, len(seq)+1)])
 
-        y += 0.1
+        y += 0.2
         sns.scatterplot(x=npos, y=y,
                     color='red', label="N", zorder=2,
                        marker="|", size=0.1, edgecolor='red',
@@ -274,7 +298,7 @@ if args.msa_file:
                     color='cyan', label="Gap", zorder=2,
                            marker="|", size=0.1, edgecolor="cyan",
                             legend=False)
-        except:
+        except: # If there are no gaps
             pass
 
         sns.lineplot(x=tpos, y=y,
@@ -329,29 +353,38 @@ def FindNCont(f):
             reads.append(line.strip())
             
     seq = "".join(reads)
-    return (header, round((seq.count("N")/len(seq)) *100,3))
+    if len(seq) < 0:
+        print(f"{f} failed!")
+        return np.nan
+    else:
+        return (header, round((seq.count("N")/len(seq)) *100,3))
 
 
-cons_patt = "sample[0-9]+.consensus.fasta\Z"
-try:
-    n_cont = dict([FindNCont(f) for f in os.listdir("./") if re.match(cons_patt, f)])
+#cons_patt = "sample[0-9]+.consensus.fasta\Z"
+n_cont = dict([FindNCont(f) for f in consensus_files])
 
-    plt.figure(figsize=(15,12))
-    plt.style.use("default")
-    plt.style.use("bmh")
-    plt.bar(x=n_cont.keys(), height=n_cont.values(), color='red',
-           edgecolor="k")
+plt.figure(figsize=(15,12))
+plt.style.use("default")
+plt.style.use("bmh")
+plt.bar(x=n_cont.keys(), height=n_cont.values(), color='red',
+       edgecolor="k")
 
-    plt.xticks(rotation=45, ha='right')
+# Only place the sample names on the plot if the media coverage is < 100 if there are too many samples
+print(len(n_cont))
+if len(n_cont) > 20:
+    xticks = plt.gca().xaxis.get_major_ticks()
+    [xticks[n].label1.set_visible(False) for n,v in enumerate(dict(n_cont).items()) \
+            if v[1] < 10]
+plt.xticks(rotation=45, ha="right")
 
-    plt.title("N content per sample\n")
-    plt.ylabel("Percent N content\n")
 
-except ZeroDivisionError:
-    plt.figure(figsize=(15,12))
+plt.title("N content per sample\n")
+plt.ylabel("Percent N content\n")
 
 plt.savefig(f"{args.name}-n-content-plot.png", dpi=200,
         bbox_inches="tight")
+
+print("N-content plots done!")
 #################### Save the images into one PDF ####################
 image_files = [f"{args.name}-position-coverage.png",
                 f"{args.name}-amplicon-coverage-bar.png",
@@ -362,9 +395,7 @@ image_files = [f"{args.name}-position-coverage.png",
                 f"{args.name}-n-content-plot.png"]
                 
 
-import PIL as pil
-
-images = [pil.Image.open(img).convert("RGB") for img in image_files]
+images = [PIL.Image.open(img).convert("RGB") for img in image_files]
 
 images[0].save(f"{args.name}-coverage-stats.pdf", save_all=True, 
                append_images = images[1:])
@@ -379,4 +410,4 @@ print()
 
 # Write out the coverage stats as a table for each sample
 pd.DataFrame(df.median(axis=0).T, 
-            columns=["Median Coverage"]).to_csv(f"{args.name}-table.tsv", sep="\t")
+            columns=["Median Coverage"]).to_csv(f"{args.name}-median-coverage-table.tsv", sep="\t")

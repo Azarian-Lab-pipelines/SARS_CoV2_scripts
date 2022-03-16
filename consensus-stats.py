@@ -28,11 +28,20 @@ parser.add_argument("--kit", dest="kit",
         help="Choose which of the provided primer kits you are using")
 parser.add_argument("--bed", dest="bed", 
         help="Specify the BED file containing the primer scheme if not choosing one of the built-in kits")
+parser.add_argument("--kit-name", dest="kit_name",
+        help="Specify the kit name if a BED file is provided")
 
 parser.add_argument("-o", "--output", dest="out", required=True,
         help="Specify the output name to save the image (*.png|tiff|pdf|svg|jpg)")
 
 args = parser.parse_args()
+
+# Make sure necessary arguments are present
+if not args.kit and not args.bed:
+    parser.error("No primer kit has been chosen and no BED file has been provided. One of the two must be provided. See --help for options")
+
+if args.bed and not args.kit_name:
+    parser.error("No kit name provided but is required when a BED file is provided")
 
 
 #################### Import the gene and amplicon location files ####################
@@ -42,7 +51,30 @@ genes = pd.read_csv(vadr_url, sep="\t",
 
 amp_url = "https://raw.githubusercontent.com/sayfaldeen/SC2/main/amplicon-positions.tsv?token=GHSAT0AAAAAABSFAPAIHDVU5DYVTORHCQFUYR3RK6A"
 df = pd.read_csv(amp_url, sep="\t")
-amp_df = df[df.Scheme == args.kit]
+
+if args.kit:
+    amp_df = df[df.Scheme == args.kit]
+    kit = args.kit
+
+else:
+    kit = args.kit_name
+    bed = pd.read_csv(args.bed, sep="\t",
+                 header=None,
+                 names=["Ref", "PS", "PE", "Primer", "Pool"])
+
+    bed["Amplicon"] = bed.Primer.apply(lambda x:int(re.search("_\d+_", x).group().strip("_")))
+
+    bed = bed.sort_values(by="Amplicon", ascending=True).reset_index(drop=True)
+
+    res = {}
+    n=0
+    for a in bed.Amplicon.unique():
+        tmp = bed[bed.Amplicon == a]
+        res[n] = [a, kit, tmp.iloc[0]["PS"], tmp.iloc[1]["PE"]]
+        n += 1
+
+    amp_df = pd.DataFrame.from_dict(res, orient="index",
+                                    columns = ["Amplicon", "Scheme", "Start", "End"])
 
 
 #################### Set up the necessary functions ####################
@@ -75,7 +107,7 @@ def FindStretches(F, drop_len = 100):
     
     seqs = FindSeqs(F)
     global df_cols 
-    df_cols = ["Genes", "Locations", "Lens", f"{args.kit.capitalize()}Amplicon", "N-percent"]
+    df_cols = ["Genes", "Locations", "Lens", f"{kit.capitalize()}Amplicon", "N-percent"]
     
     rdf = pd.DataFrame(columns=df_cols)
     for h, seq in seqs.items():
@@ -108,7 +140,8 @@ def FindStretches(F, drop_len = 100):
                                     columns=df_cols)
         rdf = rdf.append(ndf)
 
-    rdf["Drops"] = rdf.Lens.apply(lambda x:len(x))
+    rdf["Drops"] = rdf.Lens.apply(lambda x:len(x) if len(x) > 0 \
+            else 0)
     rdf["Sample"] = rdf.apply(lambda x:x.name.split("/")[0].strip(">"), axis=1)
     rdf.set_index("Sample", inplace=True)
 
@@ -168,7 +201,8 @@ plt.xticks(rotation=45, ha='right')
 plt.ylabel("Count")
 
 plt.subplot(2,2,3)
-sns.histplot(x=drops.Drops, binwidth=1,
+print(drops.Drops.unique())
+sns.histplot(x=drops.Drops.values,
             color="lightblue", edgecolor="k")
 plt.title(f"Number of stretches with > {args.drop_len} contiguous N's\n")
 plt.xlabel("\nNumber of stretches")
@@ -178,8 +212,8 @@ plt.ylabel("Count")
 plt.subplot(2,2,4)
 sns.countplot(x=amp_drops,
              color="lightblue", edgecolor="k")
-plt.title(f"Midinight amplicons with > {args.drop_len} contiguous N's\n")
-plt.xlabel("\nMidnight Amplicon")
+plt.title(f"{kit} amplicons with > {args.drop_len} contiguous N's\n")
+plt.xlabel(f"{kit} Amplicon")
 plt.ylabel("Count")
 
 

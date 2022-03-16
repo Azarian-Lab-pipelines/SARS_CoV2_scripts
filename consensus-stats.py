@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re
+import sys
 
 
 #################### Set up the argument parser ####################
@@ -42,12 +43,7 @@ genes = pd.read_csv(vadr_url, sep="\t",
 amp_url = "https://raw.githubusercontent.com/sayfaldeen/SC2/main/amplicon-positions.tsv?token=GHSAT0AAAAAABSFAPAIHDVU5DYVTORHCQFUYR3RK6A"
 df = pd.read_csv(amp_url, sep="\t")
 amp_df = df[df.Scheme == args.kit]
-#v3 = df[df.Scheme == "v3"]
-#v4 = df[df.Scheme == "v4"]
-#mid = df[df.Scheme == "midnight"]
-#var = df[df.Scheme == "varskip"]
 
-print(genes.head())
 
 #################### Set up the necessary functions ####################
 def FindSeqs(f):
@@ -127,6 +123,10 @@ def FindStretches(F, drop_len = 100):
 
 #################### Run the functions to create the DF ####################
 rdf = FindStretches(F=args.consensus, drop_len=args.drop_len)
+
+if len(drops) == 0:
+    print("Since no samples have any drop-outs no plots will be generated")
+    sys.exit(0)
 
 
 #################### Make and save the plots ####################

@@ -22,9 +22,11 @@ parser.add_argument("-l", "--length", dest="drop_len", required=True, type=int,
         than the amplicon size to ensure that possible drop-outs are 
         not missed due to overlapping amplicon schemes""")
 
-parser.add_argument("--kit", dest="kit", required=True,
+parser.add_argument("--kit", dest="kit",
         choices=["v3", "v4", "varskip", "midnight"],
         help="Choose which of the provided primer kits you are using")
+parser.add_argument("--bed", dest="bed", 
+        help="Specify the BED file containing the primer scheme if not choosing one of the built-in kits")
 
 parser.add_argument("-o", "--output", dest="out", required=True,
         help="Specify the output name to save the image (*.png|tiff|pdf|svg|jpg)")
@@ -33,16 +35,19 @@ args = parser.parse_args()
 
 
 #################### Import the gene and amplicon location files ####################
-genes = pd.read_csv("./wgs-vadr-genes.bed", sep="\t",
+vadr_url = "https://raw.githubusercontent.com/sayfaldeen/SC2/main/wgs-vadr-genes.bed?token=GHSAT0AAAAAABSFAPAII6ROMI3UUHPISW72YR3RICQ"
+genes = pd.read_csv(vadr_url, sep="\t",
                    names=["Ref", "Start", "End", "Gene"])
 
-df = pd.read_csv("amplicon-positions.tsv", sep="\t")
+amp_url = "https://raw.githubusercontent.com/sayfaldeen/SC2/main/amplicon-positions.tsv?token=GHSAT0AAAAAABSFAPAIHDVU5DYVTORHCQFUYR3RK6A"
+df = pd.read_csv(amp_url, sep="\t")
 amp_df = df[df.Scheme == args.kit]
 #v3 = df[df.Scheme == "v3"]
 #v4 = df[df.Scheme == "v4"]
 #mid = df[df.Scheme == "midnight"]
 #var = df[df.Scheme == "varskip"]
 
+print(genes.head())
 
 #################### Set up the necessary functions ####################
 def FindSeqs(f):
@@ -150,14 +155,14 @@ sns.histplot(x=len_drops, bins=np.arange(0, 17000, step=500),
 plt.xticks(np.arange(0, 17000, step=1_000),
           rotation=45, ha='right')
 plt.tick_params(axis='x', zorder=2, width=1, size=6)
-plt.title("Distributon of the lengths of stretches with > 950 contiguous N's\n")
+plt.title(f"Distributon of the lengths of stretches with > {args.drop_len} contiguous N's\n")
 plt.xlabel("\nCumulative length of stretches")
 plt.ylabel("Count")
 
 plt.subplot(2,2,2)
 sns.countplot(x=[" >--< ".join(x) for x in gene_drops],
              color="lightblue", edgecolor="k")
-plt.title("Count of genes with stretches of > 950 contiguous N's\n")
+plt.title(f"Count of genes with stretches of > {args.drop_len} contiguous N's\n")
 plt.xlabel("\nGene")
 plt.xticks(rotation=45, ha='right')
 plt.ylabel("Count")
@@ -165,7 +170,7 @@ plt.ylabel("Count")
 plt.subplot(2,2,3)
 sns.histplot(x=drops.Drops, binwidth=1,
             color="lightblue", edgecolor="k")
-plt.title("Number of stretches with > 950 contiguous N's\n")
+plt.title(f"Number of stretches with > {args.drop_len} contiguous N's\n")
 plt.xlabel("\nNumber of stretches")
 plt.ylabel("Count")
 
@@ -173,7 +178,7 @@ plt.ylabel("Count")
 plt.subplot(2,2,4)
 sns.countplot(x=amp_drops,
              color="lightblue", edgecolor="k")
-plt.title("Midinight amplicons with > 950 contiguous N's\n")
+plt.title(f"Midinight amplicons with > {args.drop_len} contiguous N's\n")
 plt.xlabel("\nMidnight Amplicon")
 plt.ylabel("Count")
 

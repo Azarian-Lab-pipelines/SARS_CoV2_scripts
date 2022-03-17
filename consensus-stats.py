@@ -209,15 +209,27 @@ plt.ylabel("Count")
 
 # Add in plot for amplicon drop-out sites
 plt.subplot(2,2,4)
-sns.countplot(x=amp_drops,
+
+from collections import Counter
+
+# Add in entries for amplicons with no drop-outs too, just to be extra clear
+amp_drop_counts = dict(Counter(amp_drops))
+for i in range(1, len(amp_df.Amplicon.unique())+1):
+    if i not in amp_drop_counts.keys():
+        amp_drop_counts[i] = 0
+
+sns.barplot(x=list(amp_drop_counts.keys()), y=list(amp_drop_counts.values()),
              color="lightblue", edgecolor="k")
 plt.title(f"{kit} amplicons with > {args.drop_len} contiguous N's\n")
 plt.xlabel(f"{kit} Amplicon")
 plt.ylabel("Count")
+plt.xticks(amp_df.Amplicon.unique(), amp_df.Amplicon.unique(),
+        rotation=45, ha="right")
 
 
 plt.tight_layout(w_pad=2, h_pad=6)
 plt.savefig(args.out, dpi=200)
 
 # Print out that the script has completed
+#print(amp_df.Amplicon.unique())
 print(f"Image saved as '{args.out}'")

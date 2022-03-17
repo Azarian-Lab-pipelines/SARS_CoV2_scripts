@@ -31,6 +31,16 @@ function help {
 	echo " "
 }
 
+# Make sure that the correct environment is activated
+if [[ $CONDA_DEFAULT_ENV != "sayf-artic" ]]
+then
+	echo ""
+	echo "The correct conda environment is not activated! Please activate run 'sayf-artic' conda environment"
+	echo "If environment is unavailble, it can be downloaded from 'https://raw.githubusercontent.com/sayfaldeen/SC2/main/sayf-artic.yml' and then running 'conda env create -f sayf-artic.yml'"
+	echo ""
+	exit 1
+fi
+
 # Create the option parser
 clear # Clear the output
 	# Put in the default arguments

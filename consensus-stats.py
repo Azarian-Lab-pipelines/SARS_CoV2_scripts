@@ -201,7 +201,6 @@ plt.xticks(rotation=45, ha='right')
 plt.ylabel("Count")
 
 plt.subplot(2,2,3)
-print(drops.Drops.unique())
 sns.histplot(x=drops.Drops.values,
             color="lightblue", edgecolor="k")
 plt.title(f"Number of stretches with > {args.drop_len} contiguous N's\n")

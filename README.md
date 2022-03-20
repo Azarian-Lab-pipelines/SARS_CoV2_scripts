@@ -25,7 +25,7 @@
 - Script to check for amplicon drop-outs given a primer scheme, primer reference, and FASTA/multi-FASTA
 	1. Prints out alignments for partial primer matches if they exist or notifies you if no match exists for a primer
 	2. Generate a plot of the percentage of samples an amplicon does not match
-		- Example plot: ![image](https://user-images.githubusercontent.com/50063071/159177273-2465fb87-5367-4d8f-8a65-4772b2658e48.png) 
+		- Example plot: ![image](https://user-images.githubusercontent.com/50063071/159177273-2465fb87-5367-4d8f-8a65-4772b2658e48.png =100x100) 
 
 ### Quick usage
 - `./amp-drop-analysis.py -b ~/Documents/TestSpace/midnight/V1/midnight.scheme.bed -r ~/Documents/TestSpace/midnight/V1/midnight.reference.fasta -c ~/Documents/SC2Genomes/Broad-consensus.mfa`

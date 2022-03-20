@@ -20,15 +20,6 @@ except ImportError as e:
     print(e)
 
 #################### Set up the argument parser ####################
-"""
-#################### Necessary arguments ####################
-
-bed_file = "../TestSpace/midnight/V1/midnight.scheme.bed"
-ref_file = "../TestSpace/midnight/V1/midnight.reference.fasta"
-consensus_file = "./Broad-consensus.mfa"
-
-"""
-
 import argparse as ap
 parser = ap.ArgumentParser(description="""
 Script to identify possible amplicon drop-out regions by checking whole genome sequences for possible
@@ -41,12 +32,13 @@ parser.add_argument("-b", "--bed", dest="bed", required=True,
         help="Indicate the BED file for the amplicon kit of interest.")
 parser.add_argument("-r", "--reference", dest="ref", required=True,
         help="""Indicate the reference file used for generating the primers.
-        NOTE: This is usually supplied in the same directory if using a pre-made primer kit; if not, Google the entry in the Reference column of the BED file""")
+NOTE: This is usually supplied in the same directory if using a pre-made primer kit.
+if not, Google entry in Reference column of BED file and it should lead to genome""")
 parser.add_argument("-c", "--consensus", dest="consensus", required=True,
         help="Indicate the FASTA or multi-FASTA containing the sequences of interest.")
 parser.add_argument("--text-print", dest="text", action="store_true",
-        help="""Option to print results without using colors. Colors only work well within a terminal or a IPYNB.
-        By preventing color output, you can pipe results into a text file neatly for futute viewing""")
+        help="""Option to print results without using colors. Colors only work well within terminal or IPYNB.
+By preventing color output, you can pipe results into a text file neatly for futute viewing""")
 
 args = parser.parse_args()
 
@@ -223,10 +215,11 @@ misses = [] # List to store all of the misses in for plot generation
 
 # Run the primer match function
 for n,header in enumerate(seqs.keys(),1):
-    print(f">>>>{header}<<<<")
+    print(f">>>> {header} <<<<")
     misses.extend(PrimerMatch(seqs[header], text=args.text))
     if n != len(seqs.keys()):
         print("\n\n")
+
 
 #################### Make the plot ####################
 mdf = pd.DataFrame.from_dict(Counter(misses), orient="index",

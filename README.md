@@ -26,3 +26,8 @@
 
 ### Quick usage
 - `./amp-drop-analysis.py -b ~/Documents/TestSpace/midnight/V1/midnight.scheme.bed -r ~/Documents/TestSpace/midnight/V1/midnight.reference.fasta -c ~/Documents/SC2Genomes/Broad-consensus.mfa`
+	- Example output from above command: ![image](https://user-images.githubusercontent.com/50063071/159175779-064525f4-e0e0-4d60-9da0-6174ea393e6e.png)
+
+- `./amp-drop-analysis.py -b ~/Documents/TestSpace/midnight/V1/midnight.scheme.bed -r ~/Documents/TestSpace/midnight/V1/midnight.reference.fasta -c ~/Documents/SC2Genomes/Broad-consensus.mfa --text-print | less`
+	- The `--text-print` option removes colors from the print outs and allows for neatly saving output in a text file
+	- Example output from above command: ![image](https://user-images.githubusercontent.com/50063071/159175853-a1fba359-8418-4562-87cd-c8f55b7f6421.png)

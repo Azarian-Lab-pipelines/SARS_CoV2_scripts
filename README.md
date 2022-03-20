@@ -7,9 +7,22 @@
 
 - Repo is currently in progress
 
-## pipeline [in progress]
-- No script added yet
+## ancov-pipeline.sh
+- Script to run the artic-ncov2019 pipeline on data generated using commonly used kits on an HPC
+	- This will need to be run with the `sayf-artic` environment activated; can be done using `conda env create -f sayf-artic.yml`
+
+### Quick usage
+- ``
+
 
 ## consensus-stats.py
 - Script to perform a QC of consensus sequences and check for long stretches of N's or possible drop out issues
-- Quick usage: `./run-stats.py -c midnight-consensus-seqs.fa -l 1000 --kit midnight -o ./mid-consensus-qc.png`
+
+### Quick usage
+- `./run-stats.py -c midnight-consensus-seqs.fa -l 1000 --kit midnight -o ./mid-consensus-qc.png`
+
+## amp-drop-analysis.py
+- Script to check for amplicon drop-outs given a primer scheme, primer reference, and FASTA/multi-FASTA
+
+### Quick usage
+- `./amp-drop-analysis.py -b ~/Documents/TestSpace/midnight/V1/midnight.scheme.bed -r ~/Documents/TestSpace/midnight/V1/midnight.reference.fasta -c ~/Documents/SC2Genomes/Broad-consensus.mfa`

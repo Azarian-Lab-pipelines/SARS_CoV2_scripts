@@ -246,3 +246,4 @@ plt.ylabel("Percent of samples with amplicon mismatch")
 
 o = args.consensus.split("/")[-1].replace(".mfa", "-primer-match-check.png")
 plt.savefig(o, dpi=200)
+print(f"Amplicon drop-out plot saved as '{o}'")

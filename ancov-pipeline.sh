@@ -284,7 +284,10 @@ srun /home/sayf/SayfGit/SC2/run-stats.py \
 	-d ./BamFiles/ -s ./ConsensusSeqs/ -n ${RNAME} \
 	-b ${SCHEME} --msa ${PWD}/${RNAME}-msa-seqs.afa &&
 
-srun /home/sayf/SayfGit/SC2/consensus-stats.py -c ${PWD}/${RNAME}-consensus-seqs.fa -l 800 --kit ${kit} -o "${RNAME}-consensus-check-plots.png" &&
+srun /home/sayf/SayfGit/SC2/consensus-stats.py \
+	-c ${PWD}/${RNAME}-consensus-seqs.fa -l 800 \
+	--kit ${kit} -o "${RNAME}-consensus-check-plots.png" &&
+
 echo "Coverage statistics have been calculated!"
 
 et=$(date +%s)

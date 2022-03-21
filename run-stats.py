@@ -373,7 +373,7 @@ if len(n_cont) > 20:
     xticks = plt.gca().xaxis.get_major_ticks()
     [xticks[n].label1.set_visible(False) for n,v in enumerate(dict(n_cont).items()) \
             if v[1] < 10]
-plt.xticks(rotation=45, ha="right")
+plt.xticks(rotation=0)
 
 
 plt.title("N content per sample\n")

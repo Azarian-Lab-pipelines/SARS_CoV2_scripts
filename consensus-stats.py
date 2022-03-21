@@ -224,7 +224,7 @@ plt.title(f"{kit} amplicons with > {args.drop_len} contiguous N's\n")
 plt.xlabel(f"{kit} Amplicon")
 plt.ylabel("Count")
 plt.xticks(amp_df.Amplicon.unique(), amp_df.Amplicon.unique(),
-        rotation=45, ha="right")
+        rotation=0, ha="right")
 
 
 plt.tight_layout(w_pad=2, h_pad=6)

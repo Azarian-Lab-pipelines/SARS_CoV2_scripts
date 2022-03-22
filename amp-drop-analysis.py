@@ -131,12 +131,20 @@ def HammRatio(s1,s2):
     hamm = len([x for x in np.array(list(s1)) != np.array(list(s2)) if x])
     return 1 - hamm/len(s1)
 
+def HammRatio(s1,s2):
+    """
+    Function to calculate the Hamming distance ratio (distance/len(string))
+    """
+    hamm = len([x for x in np.array(list(s1)) != np.array(list(s2)) if x])
+    return 1 - hamm/len(s1)
+
 def PrimerMatch(seq, hr_thresh = 0.8, text=None):
     """
     Function to find which primers may be implicated in amplicon drop-outs
     """
     
     mismatches = set() # to return a list of amplicons with no match
+    partials = [] # List to return primers with high-quality partial matches
     
     l = 7 # kmer length
     
@@ -154,12 +162,12 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
             kmers = [r[i:i+l] for i in range(0, len(r)-l)]
             matches = {} # Dict for exhaustive search (kmatch, lev_ratio)
             
-            for kmer in kmers:
+            for n,kmer in enumerate(kmers):
                 try:
                     span = re.search(kmer, seq).span()
-                    kmatch = seq[span[0]:span[0]+len(r)]
-                    hr = HammRatio(r, kmatch) # Hamming ratio
-                    matches[kmatch] = [hr, span[0]]
+                    kmatch = seq[span[0]-n:span[0]+len(r)-n] # Shift the slice by n to the left; as if we are extending string both ways
+                    hr = HammRatio(r, kmatch) # Hamming ratio of kmer match vs reference primer
+                    matches[kmatch] = [hr, span[0], n]
 
                 except AttributeError:
                     pass
@@ -177,11 +185,12 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
                     print(f"Partial match for {a} starting at pos {matches[best_match][1]} -- reference primer at pos {s,e}")
                     print(f"Best Hamming ratio: {round(max_ratio,2)}")
                     PrintAligns(r, best_match, text)
+                    partials.append(a)
                 else:
                     print(f"No high quality matches for {a}")
                     mismatches.add(a)
 
-    return list(mismatches)
+    return [list(mismatches), partials]
 
 
 #################### Import and prepare the BED file ####################
@@ -209,34 +218,57 @@ amp_df["Seq"] = amp_df.apply(lambda x: GetPrimerSeqs(x),
 
 
 #################### Check the consensus sequences ####################
-# Read in the consensus sequences
+# Read in the sequences
 seqs = FindSeqs(args.consensus)
-misses = [] # List to store all of the misses in for plot generation
 
-# Run the primer match function
-for n,header in enumerate(seqs.keys(),1):
-    print(f">>>> {header} <<<<")
-    misses.extend(PrimerMatch(seqs[header], text=args.text))
-    if n != len(seqs.keys()):
-        print("\n\n")
+res = {} # dict to store the results in
+cols = ["Mismatches", "Partials"]
+
+# Run the PrimerMatch function
+for header in seqs.keys():
+    print(f"\n\n>>>>{header}<<<<")
+    res[header] = PrimerMatch(seqs[header], text=True)
+
+mdf = pd.DataFrame.from_dict(res, orient="index",
+                             columns = cols)
 
 
 #################### Make the plot ####################
-mdf = pd.DataFrame.from_dict(Counter(misses), orient="index",
-            columns=["Count"])
-mdf["Ratio"] = round(mdf.Count/len(seqs), 2)
+nons = []
+mdf.Mismatches.apply(lambda x:nons.extend(x))
 
-plt.style.use("bmh")
-plt.figure(figsize=(10,10))
+parts = []
+mdf.Partials.apply(lambda x:parts.extend(x))
 
-# Plot the ratios
-sns.barplot(x=mdf.index, y=mdf.Ratio*100, 
-           color="gold", edgecolor="k")
+pdf = pd.concat([pd.DataFrame.from_dict(Counter(parts), orient="index", 
+                      columns=["Partials"]), 
+           pd.DataFrame.from_dict(Counter(nons), orient="index", 
+                      columns=["NonMatches"])], axis=1).fillna(0)
 
-plt.title("Percent of samples with no high-quality matches to primer\n")
+# Sort by amplicon
+pdf["Amplicon"] = pdf.apply(lambda x: int(x.name.split("_")[0]),
+                            axis=1)
+pdf.sort_values(by="Amplicon", ascending=True, inplace=True)
+
+plt.style.use("ggplot")
+plt.figure(figsize=(8,8))
+
+plt.bar(x=pdf.index, height=pdf.Partials/len(seqs.keys())*100, 
+        color="gold", edgecolor="k", linewidth=1,
+       label="Partial match")
+plt.bar(x=pdf.index, height=pdf.NonMatches/len(seqs.keys())*100, bottom=pdf.Partials/len(seqs.keys())*100,
+        color="gray", edgecolor="k", linewidth=1,
+       label="No match")
+
+plt.legend(facecolor="white", edgecolor="k", frameon=True)
+
+plt.ylim(0, 110)
+
+plt.title("Counts of partial and non-matches for each primer")
+plt.ylabel("Percent of samples")
 plt.xlabel("Amplicon")
-plt.ylabel("Percent of samples with amplicon mismatch")
 
 o = args.consensus.split("/")[-1].replace(".mfa", "-primer-match-check.png")
 plt.savefig(o, dpi=200)
+
 print(f"Amplicon drop-out plot saved as '{o}'")

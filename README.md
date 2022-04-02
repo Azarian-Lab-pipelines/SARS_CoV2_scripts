@@ -26,7 +26,7 @@
 	1. Prints out alignments for partial primer matches if they exist or notifies you if no match exists for a primer
 	2. Generate a plot of the percentage of samples an amplicon does not match
 		- Example plot: 
-		<img src="https://user-images.githubusercontent.com/50063071/159177273-2465fb87-5367-4d8f-8a65-4772b2658e48.png" width="300" height="300" />
+		<img src="https://user-images.githubusercontent.com/50063071/159532260-db074b4e-0032-4d2b-8be6-92b0619c4a80.png" width="300" height="300" />
 
 ### Quick usage
 - `./amp-drop-analysis.py -b ~/Documents/TestSpace/midnight/V1/midnight.scheme.bed -r ~/Documents/TestSpace/midnight/V1/midnight.reference.fasta -c ~/Documents/SC2Genomes/Broad-consensus.mfa`

@@ -94,7 +94,7 @@ def GetPrimerSeqs(x):
         # 2) Take the reverse compliment
     elif "R" in x.name:
         seq = Seq.Seq(ref[x["PE"]:x["PS"]])
-        # seq.reverse_complement()
+        # seq.reverse_complement() # Not necessary since it should be in primer TSV
         return str(seq)
     else:
         print("Err: Primer label is not in right format")
@@ -174,7 +174,7 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
                 
             if len(matches) == 0:
                 # If we run out with no matches
-                print(f"There are no matches or partial matches for primer {a}")
+                print(f"There are no matches or partial matches for primer {a}\n")
                 mismatches.add(a)
                         
             else:
@@ -187,7 +187,7 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
                     PrintAligns(r, best_match, text)
                     partials.append(a)
                 else:
-                    print(f"No high quality matches for {a}")
+                    print(f"No high quality matches for {a}\n")
                     mismatches.add(a)
 
     return [list(mismatches), partials]
@@ -268,7 +268,7 @@ plt.title("Counts of partial and non-matches for each primer")
 plt.ylabel("Percent of samples")
 plt.xlabel("Amplicon")
 
-o = args.consensus.split("/")[-1].replace(".mfa", "-primer-match-check.png")
+o = args.consensus.split("/")[-1].replace(f".{args.consensus.split('.')[-1]}", "-amplicon-check.png")
 plt.savefig(o, dpi=200)
 
 print(f"Amplicon drop-out plot saved as '{o}'")

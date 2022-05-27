@@ -131,13 +131,6 @@ def HammRatio(s1,s2):
     hamm = len([x for x in np.array(list(s1)) != np.array(list(s2)) if x])
     return 1 - hamm/len(s1)
 
-def HammRatio(s1,s2):
-    """
-    Function to calculate the Hamming distance ratio (distance/len(string))
-    """
-    hamm = len([x for x in np.array(list(s1)) != np.array(list(s2)) if x])
-    return 1 - hamm/len(s1)
-
 def PrimerMatch(seq, hr_thresh = 0.8, text=None):
     """
     Function to find which primers may be implicated in amplicon drop-outs

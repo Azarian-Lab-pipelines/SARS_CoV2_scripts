@@ -13,6 +13,7 @@ try:
     from Bio import Seq, SeqIO
 except ImportError as e:
     print(e)
+    sys.exit(1)
     
 try:
     from scipy.spatial.distance import hamming
@@ -193,6 +194,13 @@ ref = PullRef(args.ref)
 bed = pd.read_csv(args.bed, sep="\t",
              header=None,
              names=["Ref", "PS", "PE", "Primer", "Pool"])
+
+# Correct for different naming schemes
+if type(bed.index[0]) != int:
+    bed.reset_index(inplace=True)
+    bed.drop("Pool", inplace=True, axis=1)
+    bed.columns = ["Ref", "PS", "PE", "Primer", "Pool"]
+
 
 bed["AmpliconLabel"] = bed.Primer.apply(lambda x:re.search("_\d+_\w", x).group().strip("_").upper())
 bed["Amplicon"] = bed.Primer.apply(lambda x:int(re.search("_\d+_", x).group().strip("_")))

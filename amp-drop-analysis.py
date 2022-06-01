@@ -228,7 +228,7 @@ cols = ["Mismatches", "Partials"]
 # Run the PrimerMatch function
 for header in seqs.keys():
     print(f"\n\n>>>>{header}<<<<")
-    res[header] = PrimerMatch(seqs[header], text=True)
+    res[header] = PrimerMatch(seqs[header], text=args.text)
 
 mdf = pd.DataFrame.from_dict(res, orient="index",
                              columns = cols)

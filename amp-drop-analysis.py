@@ -40,6 +40,10 @@ parser.add_argument("-c", "--consensus", dest="consensus", required=True,
 parser.add_argument("--text-print", dest="text", action="store_true",
         help="""Option to print results without using colors. Colors only work well within terminal or IPYNB.
 By preventing color output, you can pipe results into a text file neatly for futute viewing""")
+parser.add_argument("--print-matches", dest="primers", action="store_true", default=False, 
+        help="""Option to print out matching primers as well. This will print out:
+    primer_name, location in query genome, and location in reference (where the primer was originally supposed to target)""")
+
 
 args = parser.parse_args()
 
@@ -132,11 +136,12 @@ def HammRatio(s1,s2):
     hamm = len([x for x in np.array(list(s1)) != np.array(list(s2)) if x])
     return 1 - hamm/len(s1)
 
-def PrimerMatch(seq, hr_thresh = 0.8, text=None):
+def PrimerMatch(seq, hr_thresh = 0.8, text=None, primers=False):
     """
     Function to find which primers may be implicated in amplicon drop-outs
     """
     
+    primer_matches = set() # set of [primer_name, loc, ref_loc] for matching primers
     mismatches = set() # to return a list of amplicons with no match
     partials = [] # List to return primers with high-quality partial matches
     
@@ -147,9 +152,10 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
             r,s,e = amp_df.loc[a, ["Seq", "PS", "PE"]]
         else:
             r,s,e = amp_df.loc[a, ["Seq", "PE", "PS"]]
-            
-        if re.search(r, seq):
-            pass
+           
+        check = re.search(r, seq)
+        if check: # Exact match found
+            primer_matches.add((a, (check.span()), (s,e)))
         else:
             # If we cannot get a perfect match, try a greedy K-mer approach or try an exhaustive match if we make the kmers big enough
             # Generate the kmers
@@ -182,6 +188,11 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
                 else:
                     print(f"No high quality matches for {a}\n")
                     mismatches.add(a)
+
+    if primers:
+        print("Primer matches:")
+        [print(f"\t{n}) {a}") for n,a in enumerate(primer_matches)]
+
 
     print(f"No matches or partial matches for primers:")
     [print(f"\t{n}) {a}") for n,a in enumerate(mismatches)]

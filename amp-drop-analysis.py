@@ -168,7 +168,6 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
                 
             if len(matches) == 0:
                 # If we run out with no matches
-                print(f"There are no matches or partial matches for primer {a}\n")
                 mismatches.add(a)
                         
             else:
@@ -184,6 +183,9 @@ def PrimerMatch(seq, hr_thresh = 0.8, text=None):
                     print(f"No high quality matches for {a}\n")
                     mismatches.add(a)
 
+    print(f"No matches or partial matches for primers:")
+    [print(f"\t{n}) {a}") for n,a in enumerate(mismatches)]
+   
     return [list(mismatches), partials]
 
 

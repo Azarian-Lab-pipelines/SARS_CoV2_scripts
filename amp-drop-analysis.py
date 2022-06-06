@@ -14,11 +14,6 @@ try:
 except ImportError as e:
     print(e)
     sys.exit(1)
-    
-try:
-    from scipy.spatial.distance import hamming
-except ImportError as e:
-    print(e)
 
 #################### Set up the argument parser ####################
 import argparse as ap
